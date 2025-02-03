@@ -1,7 +1,7 @@
 import { useState } from 'react';
-import { View, TextInput, Button, Text } from 'react-native';
+import { View, TextInput, Button, Text, StyleSheet } from 'react-native';
 import { signup } from '@/api/auth';
-import { useRouter, Link } from 'expo-router';
+import { useRouter } from 'expo-router';
 
 export default function SignUpScreen() {
     const router = useRouter();
@@ -26,15 +26,35 @@ export default function SignUpScreen() {
     }
 
     return(
-        <View>
-            <TextInput placeholder='Email' value={email} onChangeText={setEmail} />
-            <TextInput placeholder='Password' value={password} onChangeText={setPassword} secureTextEntry/>
-            {error ? <Text style={{ color: 'red' }}>{error}</Text> : null}
-            <Button title="Sign up" onPress={onSignUp}/>
-            <Text style={{ textAlign: 'center', marginTop: 10 }}>
-              Already have an account?  
-              <Button title="Login" onPress={() => router.push('/auth/login')}/>
-            </Text>
+        <View style={{ flex: 1}}>
+            <View style={ styles.signupContainer}>
+              <TextInput style={ styles.inputField } placeholder='Email' value={email} onChangeText={setEmail} />
+              <TextInput style={ styles.inputField } placeholder='Password' value={password} onChangeText={setPassword} secureTextEntry/>
+              {error ? <Text style={{ color: 'red' }}>{error}</Text> : null}
+              <View>
+                <Button title="Sign up" onPress={onSignUp}/>
+              </View>
+            </View>
+            <View style={ styles.inputField }>
+              <Text style={{ textAlign: 'center', margin: 10 }}>
+                Already have an account?  
+              </Text>
+                <Button title="Login" onPress={() => router.push('/auth/login')}/>
+            </View>
         </View>
     )
 }
+
+const styles = StyleSheet.create({
+  signupContainer: {
+    flex: 1,
+    padding: 10,
+    margin: 10,
+    gap: 15
+  },
+  inputField: {
+    padding: 10,
+    borderColor: '#111',
+    backgroundColor: '#fff'
+  }
+})
