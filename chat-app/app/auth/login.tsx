@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { View, Text, TextInput, Button } from 'react-native';
+import { View, Text, TextInput, Button, Platform } from 'react-native';
 import { login } from '@/api/auth';
 import { useRouter } from 'expo-router';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function LoginScreen() {
     const router = useRouter();
@@ -17,6 +18,15 @@ export default function LoginScreen() {
         }
         try {
             const response = await login(email, password);
+            if(response?.token){
+                if (Platform.OS === 'web') {
+                    localStorage.setItem('token', response?.token);
+                    const token = localStorage.getItem('token');
+                    console.log(token);
+                } else {
+                    await AsyncStorage.setItem('token', response?.token);
+                }
+            }
             console.log(response);
             router.push(`/chat`)
         } catch(err) {
