@@ -3,7 +3,8 @@ import { View, Text, TextInput, TouchableOpacity, FlatList, } from 'react-native
 import { useEffect, useState } from 'react';
 import io from "socket.io-client";
 
-const socket = io("http://192.168.1.7:3000");
+// const socket = io("http://192.168.1.7:3000");
+const socket = io("http://localhost:3000");
 
 export default function ChatScreen() {
 
