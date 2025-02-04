@@ -1,6 +1,6 @@
 import { useLocalSearchParams } from 'expo-router';
 import { View, Text, TextInput, TouchableOpacity, FlatList, } from 'react-native';
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useRef } from 'react';
 import io from "socket.io-client";
 
 // const socket = io("http://192.168.1.7:3000");
@@ -8,18 +8,27 @@ const socket = io("http://localhost:3000");
 
 export default function ChatScreen() {
 
-    const { id } = useLocalSearchParams();
+    const { chatId, userId } = useLocalSearchParams();
     const [messages, setMessages] = useState([
         { id: '1', text: 'Hello!', sender: 'me' },
         { id: '2', text: 'Hi there!', sender: 'other' },
     ]);
+    const flatListRef: any = useRef(null);
     
     const [input, setInput] = useState('');
 
     useEffect(() => {
         socket.connect();
+        socket.emit("fetchMessages", chatId);
+
+        socket.on("loadMessage", (msgs) => {
+            setMessages((msg) => [...msg,msgs]);
+        })
         socket.on("receiveMessage", (message) => {
-            setMessages((msg) => [...msg, message])
+            if(message.chatId == chatId){
+                setMessages((prev) => [...prev, message]);
+                scrollToBottom();
+            }
         })
 
         return () => {
@@ -29,10 +38,20 @@ export default function ChatScreen() {
 
     const sendMessage = () => {
 
-        const newMessage = { id: String(Date.now()), text: input, sender: 'me' };
+        const newMessage = {
+            chatId,
+            sender: userId,
+            text: input
+        }
         socket.emit("sendMessage", newMessage);
         setInput('');
     }
+
+    const scrollToBottom = () => {
+        setTimeout(() => {
+            flatListRef.current?.scrollToEnd({ animated: true });
+        }, 100);
+    };
 
     return (
         <View style={{
@@ -41,6 +60,7 @@ export default function ChatScreen() {
         }}>
             <FlatList
                 data={messages}
+                ref={flatListRef}
                 keyExtractor={(item) => item.id}
                 renderItem={({item}) => (
                     <View

@@ -1,29 +1,45 @@
-import { View, Text, FlatList, Image, TouchableOpacity, Platform } from 'react-native';
-import { useRouter, usePathname } from 'expo-router';
+import { View, Text, FlatList, Image, TouchableOpacity, Platform, Button, StyleSheet } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useState, useEffect } from 'react'
 import axios from "axios";
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
-const chats = [
-  { id: '1', name: 'John Doe', lastMessage: 'Hey!', avatar: 'https://randomuser.me/api/portraits/men/1.jpg', time: '10:30 AM' },
-  { id: '2', name: 'Jane Smith', lastMessage: 'How are you?', avatar: 'https://randomuser.me/api/portraits/women/2.jpg', time: '9:45 AM' },
-];
 
 export default function ChatListScreen() {
   const router = useRouter();
-  const pathName = usePathname();
-  const [user, setUser] = useState(null);
+  const [user, setUser]: any = useState(null);
   const [token, setToken] = useState(localStorage.getItem('token'));
+  const [loading, setLoading] = useState(false);
+  const [chats, setChats] = useState([]);
 
   const fetchUser = async() => {
     try {
-      const res = await axios.get(`http://localhost:3000/profile`,{
+      setLoading(true);
+      const res: any = await axios.get(`http://localhost:3000/profile`,{
         headers: { Authorization: `Bearer ${token}`}
       })
-      setUser(res.data);
+      setUser(res.data.user);
+      console.log(user);
+      fetchChats(res.data.user._id);
     } catch (err) {
+      setLoading(false);
       router.replace('/auth/login')
     }
+    setLoading(false);
+  }
+
+  const fetchChats = async (userId: any) => {
+    setLoading(true);
+    try {
+      const chats = await axios.get(`http://localhost:3000/chats/${userId}`,{
+        headers: { Authorization: `Bearer ${token}`}
+      })
+      setChats(chats.data);
+    } catch (err) {
+      console.log(err);
+      setLoading(false);
+    }
+    setLoading(false);
   }
 
   useEffect(() => {
@@ -60,7 +76,14 @@ export default function ChatListScreen() {
 
   return (
     <>
-    <Text>{token}</Text>
+    { loading ? <Text>Loading...</Text> : chats.length == 0 ? 
+    <View style={ styles.noChatContainer }>
+      <View>No Chats yet..</View>
+      <TouchableOpacity style={ styles.newChatBtn }>
+        <Text style={{ color: '#fff'}}>Start a new chat</Text>
+      </TouchableOpacity>
+    </View>
+    : 
     <FlatList
     data={chats}
     keyExtractor={(item) => item.id}
@@ -78,7 +101,21 @@ export default function ChatListScreen() {
     )}
     >
       
-    </FlatList>
+    </FlatList>}
     </>
   );
 }
+
+const styles = StyleSheet.create({
+  noChatContainer: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: "center",
+    gap: 15
+  }, 
+  newChatBtn: {
+    borderRadius: 20,
+    backgroundColor: '#007AFF',
+    padding: 10
+  }
+})

@@ -21,6 +21,8 @@ mongoose.connect(`mongodb+srv://${process.env.MONGO_USERNAME}:${encodedPassword}
 }).then(() => console.log("MongoDB Connected"))
   .catch(err => console.log("DB Connection Error:", err));
 
+// Define DB schemas
+
 const UserSchema = new mongoose.Schema({
   email: String,
   password: String,
@@ -28,13 +30,29 @@ const UserSchema = new mongoose.Schema({
 
 const User = mongoose.model("User", UserSchema);
 
+const MessageSchema = new mongoose.Schema({
+  chatId: String,
+  sender: String,
+  text: String,
+  timestamp: { type: Date, default: Date.now() }
+})
+
+const Message = mongoose.model("Message", MessageSchema);
+
+const ChatListSchema = new mongoose.Schema({
+  users: [String], // Store user IDs of participants
+  lastMessage: { type: String, default: "" }, // Store last message
+  updatedAt: { type: Date, default: Date.now } // Track last activity
+});
+
+const ChatList = new mongoose.model("ChatList", ChatListSchema);
+
 const generateToken = (user) => {
   return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
 };
 
 
 // Sign up process
-
 app.post('/signup', async (req,res) => {
   const { email , password } = req.body;
   const hashedPassword = await bcrypt.hash(password, 10);
@@ -44,7 +62,6 @@ app.post('/signup', async (req,res) => {
 })
 
 // login process
-
 app.post('/login', async (req,res) => {
   const { email, password } = req.body;
   
@@ -58,7 +75,6 @@ app.post('/login', async (req,res) => {
 })
 
 // Profile based protected route
-
 app.get('/profile', async (req,res) => {
   const token = req.headers.authorization?.split(' ')[1];
   if(!token){
@@ -74,8 +90,17 @@ app.get('/profile', async (req,res) => {
   }
 })
 
-// Socket Defined here
+// To fetch chatlist based on userId
+app.get('/chats/:userId', async (req,res) => {
+  try {
+    const chats = await ChatList.find({ users: req.params.userId }).sort({ updatedAt: -1 });
+    res.json(chats);
+  } catch (err) {
+    res.status(500).json({ error: 'Error fetching chats' });
+  }
+})
 
+// Socket Defined here
 const io = new Server(server, {
   cors: {
     origin: "*",  // Allow all origins (change in production)
@@ -86,11 +111,22 @@ const io = new Server(server, {
 io.on("connection", (socket) => {
   console.log("A user connected:", socket.id);
 
-  socket.on("sendMessage", (message) => {
+  // When user sends message
+  socket.on("sendMessage", async ({chatId, sender, text}) => {
+    const message = new Message({chatId, sender, text});
+    await message.save();
     console.log("Message received:", message);
     io.emit("receiveMessage", message); // Broadcast message
+    io.emit("updateChatList", { chatId, lastMessage: text})
   });
 
+  // When user opens chat
+  socket.on("fetchMessages", async (chatId) => {
+    const messages = await Message.find({ chatId }).sort({ timestamp: 1 });
+    socket.emit("loadMessage", messages);
+  })
+
+  // When user leaves
   socket.on("disconnect", () => {
     console.log("User disconnected:", socket.id);
   });
