@@ -100,6 +100,16 @@ app.get('/chats/:userId', async (req,res) => {
   }
 })
 
+// To fetch all users
+app.get('/users', async (req,res) => {
+  try{
+    const users = await User.find({}, 'email _id');
+    res.json(users);
+  } catch(err) {
+    res.status(500).json({error: err})
+  }
+})
+
 // Socket Defined here
 const io = new Server(server, {
   cors: {

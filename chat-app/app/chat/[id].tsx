@@ -44,6 +44,7 @@ export default function ChatScreen() {
             text: input
         }
         socket.emit("sendMessage", newMessage);
+        console.log(newMessage);
         setInput('');
     }
 
@@ -58,6 +59,7 @@ export default function ChatScreen() {
             margin: 10,
             flex: 1
         }}>
+            { messages.map((msg, index) => (<Text key={index}>{msg.text}</Text>))}
             <FlatList
                 data={messages}
                 ref={flatListRef}

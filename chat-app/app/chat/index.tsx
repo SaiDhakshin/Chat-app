@@ -74,12 +74,24 @@ export default function ChatListScreen() {
     fetchToken();
   }, []);
 
+  const onLogout = async () => {
+    if (Platform.OS === 'web') {
+      localStorage.removeItem('token');
+    } else {
+        await AsyncStorage.removeItem('token');
+    }
+    setToken(null);
+  }
+
   return (
     <>
+    <TouchableOpacity>
+      <Button onPress={() => onLogout()} title="Logout"></Button>
+    </TouchableOpacity>
     { loading ? <Text>Loading...</Text> : chats.length == 0 ? 
     <View style={ styles.noChatContainer }>
-      <View>No Chats yet..</View>
-      <TouchableOpacity style={ styles.newChatBtn }>
+      <View><Text>No Chats yet..</Text></View>
+      <TouchableOpacity onPress={() => router.push("/chat/searchuser")} style={ styles.newChatBtn }>
         <Text style={{ color: '#fff'}}>Start a new chat</Text>
       </TouchableOpacity>
     </View>

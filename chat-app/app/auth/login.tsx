@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Button, Platform } from 'react-native';
 import { login } from '@/api/auth';
 import { useRouter } from 'expo-router';
@@ -28,11 +28,29 @@ export default function LoginScreen() {
                 }
             }
             console.log(response);
-            router.push(`/chat`)
+            router.replace(`/chat`)
         } catch(err) {
             setError(`Invalid Creds`);
         }
     }
+
+    useEffect(() => {
+        console.log('check for token running')
+        const fetchToken = async () => {
+            let storedToken: any = '';
+            if (Platform.OS === 'web') {
+                storedToken = localStorage.getItem('token');
+            } else {
+                storedToken = await AsyncStorage.getItem('token');
+            }
+            if(storedToken){
+                router.replace('/chat/');
+            }
+            return;
+        }
+
+        fetchToken();
+    },[])
 
     return (
         <View style={ styles.loginContainer}>
