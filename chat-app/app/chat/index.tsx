@@ -8,7 +8,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 export default function ChatListScreen() {
   const router = useRouter();
   const [user, setUser]: any = useState(null);
-  const [token, setToken] = useState(localStorage.getItem('token'));
+  const [token, setToken] = useState(localStorage.getItem('token') || AsyncStorage.getItem('token'));
   const [loading, setLoading] = useState(false);
   const [chats, setChats] = useState([]);
 
@@ -76,7 +76,7 @@ export default function ChatListScreen() {
 
   const onLogout = async () => {
     if (Platform.OS === 'web') {
-      localStorage.removeItem('token');
+      localStorage.clear();
     } else {
         await AsyncStorage.removeItem('token');
     }

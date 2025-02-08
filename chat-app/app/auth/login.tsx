@@ -21,10 +21,12 @@ export default function LoginScreen() {
             if(response?.token){
                 if (Platform.OS === 'web') {
                     localStorage.setItem('token', response?.token);
+                    localStorage.setItem('userData', JSON.stringify(response?.user));
                     const token = localStorage.getItem('token');
                     console.log(token);
                 } else {
                     await AsyncStorage.setItem('token', response?.token);
+                    await AsyncStorage.setItem('userData', JSON.stringify(response?.user));
                 }
             }
             console.log(response);
