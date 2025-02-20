@@ -12,6 +12,7 @@ const server = http.createServer(app);
 app.use(express.json());
 app.use(cors());
 const encodedPassword = encodeURIComponent(process.env.MONGO_PASSWORD);
+const authMiddleware = require('./middleware/authMiddleware');
 
 console.log(encodedPassword);
 
@@ -39,13 +40,13 @@ const MessageSchema = new mongoose.Schema({
 
 const Message = mongoose.model("Message", MessageSchema);
 
-const ChatListSchema = new mongoose.Schema({
+const ChatSchema = new mongoose.Schema({
   users: [String], // Store user IDs of participants
   lastMessage: { type: String, default: "" }, // Store last message
   updatedAt: { type: Date, default: Date.now } // Track last activity
 });
 
-const ChatList = new mongoose.model("ChatList", ChatListSchema);
+const Chat = new mongoose.model("Chat", ChatSchema);
 
 const generateToken = (user) => {
   return jwt.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
@@ -90,13 +91,35 @@ app.get('/profile', async (req,res) => {
   }
 })
 
-// To fetch chatlist based on userId
+// To fetch Chat based on userId
 app.get('/chats/:userId', async (req,res) => {
   try {
-    const chats = await ChatList.find({ users: req.params.userId }).sort({ updatedAt: -1 });
+    const chats = await Chat.find({ users: req.params.userId }).sort({ updatedAt: -1 });
     res.json(chats);
   } catch (err) {
     res.status(500).json({ error: 'Error fetching chats' });
+  }
+})
+
+// To fetch chat messages
+app.post('/chats',authMiddleware, async (req,res) => {
+  const { userId } = req.body;
+  const currentUserId = req.user.id;
+
+  try{
+
+    // Check if chat already exists
+    let chat = await Chat.findOne({ users: { $all: [currentUserId, userId]}});
+    console.log(chat);
+    // If no chats available
+    if(!chat){
+      chat = new Chat({ users: [currentUserId, userId] });
+      await chat.save();
+    }
+    
+    res.json({ chatId: chat._id });
+  } catch (err) {
+    console.log('Error finding or creating chat');
   }
 })
 

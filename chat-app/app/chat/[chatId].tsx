@@ -1,7 +1,8 @@
 import { useLocalSearchParams } from 'expo-router';
-import { View, Text, TextInput, TouchableOpacity, FlatList, } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, FlatList, Platform} from 'react-native';
 import { useEffect, useState, useRef } from 'react';
 import io from "socket.io-client";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 // const socket = io("http://192.168.1.7:3000");
 const socket = io("http://localhost:3000");
@@ -14,15 +15,15 @@ export default function ChatScreen() {
         { id: '2', text: 'Hi there!', sender: 'other' },
     ]);
     const flatListRef: any = useRef(null);
-    
     const [input, setInput] = useState('');
+    const [currentUser, setCurrentUser]: any = useState("");
 
     useEffect(() => {
         socket.connect();
         socket.emit("fetchMessages", chatId);
 
         socket.on("loadMessage", (msgs) => {
-            setMessages((msg) => [...msg,msgs]);
+            setMessages((msg) => [...msg,...msgs]);
         })
         socket.on("receiveMessage", (message) => {
             if(message.chatId == chatId){
@@ -40,7 +41,7 @@ export default function ChatScreen() {
 
         const newMessage = {
             chatId,
-            sender: userId,
+            sender: currentUser._id,
             text: input
         }
         socket.emit("sendMessage", newMessage);
@@ -54,12 +55,31 @@ export default function ChatScreen() {
         }, 100);
     };
 
+    useEffect(() => {
+        console.log("Chat ID:", chatId, "User ID:", userId);
+        getCurrentUser();
+    }, [chatId, userId]);
+
+    const getCurrentUser = async () => {
+        let currentUser: any = '';
+        if (Platform.OS === 'web') {
+            let parsedData = localStorage.getItem('userData') || "";
+            console.log(parsedData);
+            currentUser = JSON.parse(parsedData);
+        } else {
+            currentUser = await AsyncStorage.getItem('userData');
+        }
+        setCurrentUser(currentUser);
+        console.log(currentUser);
+        return;
+    }
+
     return (
         <View style={{
             margin: 10,
             flex: 1
         }}>
-            { messages.map((msg, index) => (<Text key={index}>{msg.text}</Text>))}
+            { messages.length}
             <FlatList
                 data={messages}
                 ref={flatListRef}
@@ -67,13 +87,13 @@ export default function ChatScreen() {
                 renderItem={({item}) => (
                     <View
                         style={{
-                            alignSelf: item.sender == 'me' ? 'flex-end' : 'flex-start',
-                            backgroundColor: item.sender == 'me' ? '#007AFF' : '#E5E5EA',
+                            alignSelf: item.sender == currentUser._id ? 'flex-end' : 'flex-start',
+                            backgroundColor: item.sender == currentUser._id ? '#007AFF' : '#E5E5EA',
                             padding: 10,
                             borderRadius: 10,
                             marginVertical: 5
                         }}>
-                        <Text style={{ color: item.sender == 'me' ? 'white' : 'black' }}>{ item.text }</Text>
+                        <Text style={{ color: item.sender == currentUser._id ? 'white' : 'black' }}>{ item.text }</Text>
                     </View>
                 )}>
 
